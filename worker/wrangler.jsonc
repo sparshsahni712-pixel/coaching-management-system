@@ -6,6 +6,6 @@
   "keep_vars": true,
   "vars": {
     // Comma-separated list of exact origins allowed to call this API (no trailing slash). Add your own domain here later.
-    "ALLOWED_ORIGIN": "https://coaching-management-system0.sparshsahni712.workers.dev,http://localhost:5173"
+    "ALLOWED_ORIGIN": "https://coaching-management-system2.sparshsahni712.workers.dev,http://localhost:5173"
   }
 }
