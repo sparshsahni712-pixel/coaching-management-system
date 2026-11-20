@@ -1,0 +1,11 @@
+{
+  "name": "lms-admin-api",
+  "main": "src/index.js",
+  "compatibility_date": "2026-11-01",
+  // Keep variables you add in the Cloudflare dashboard (SUPABASE_URL, SUPABASE_ANON_KEY, secrets) across Git deploys.
+  "keep_vars": true,
+  "vars": {
+    // Comma-separated list of exact origins allowed to call this API (no trailing slash). Add your own domain here later.
+    "ALLOWED_ORIGIN": "https://coaching-management-system0.sparshsahni712.workers.dev,http://localhost:5173"
+  }
+}
