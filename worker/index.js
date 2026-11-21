@@ -51,8 +51,20 @@ export default {
       const adm = b.admission_number ? String(b.admission_number).trim().slice(0, 50) : null;
       if (b.batch_id && !UUID.test(b.batch_id)) throw new HttpError(400, 'Invalid batch');
       if (b.role === 'student' && b.batch_id) {
-        const bt = await sb(env, `/rest/v1/batches?id=eq.${b.batch_id}&institute_id=eq.${p.institute_id}&select=id`, { service: true });
-        if (!bt.ok || !bt.json?.length) throw new HttpError(400, 'Batch not found in your institute');
+  const bt = await sb(env, `/rest/v1/batches?id=eq.${b.batch_id}&institute_id=eq.${p.institute_id}&select=id`, { service: true });
+
+  if (!bt.ok) {
+    console.error('Batch query failed:', bt.status, bt.json);
+    throw new HttpError(500, 'Batch query failed. Check Worker logs.');
+  }
+
+  if (!bt.json?.length) {
+    console.error('Batch mismatch:', {
+      batch_id: b.batch_id,
+      admin_institute_id: p.institute_id
+    });
+    throw new HttpError(400, 'Batch ID or institute ID mismatch. Check Worker logs.');
+  }
       }
       let user = await findUserByEmail(env, email);
       if (user) {
