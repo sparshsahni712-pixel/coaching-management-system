@@ -631,14 +631,218 @@ if(error)throw error;
 }
 },
 
-submissions:{
-title:"Student submissions",table:"homework_submissions
 submissions: {
-  title: "Student Submissions",
+  title: "Student submissions",
   table: "homework_submissions",
+  select: "*",
   order: "created_at",
+  cols: [
+    {
+      label: "Submission record",
+      get: r => JSON.stringify(r)
+    }
+  ],
   add: false,
   edit: false,
   del: false
 }
 };
+
+// Enable safe form actions for configured modules.
+[
+  "students",
+  "teachers",
+  "parents",
+  "links",
+  "batches",
+  "assign",
+  "exams",
+  "results",
+  "homework"
+].forEach(k => {
+  C[k].add = true;
+  C[k].edit = true;
+});
+
+const MENUS = {
+  admin: [
+    ["home", "Dashboard"],
+    ["students", "Students"],
+    ["teachers", "Teachers"],
+    ["parents", "Parents"],
+    ["links", "Parent-Student Links"],
+    ["batches", "Batches"],
+    ["assign", "Teacher Assignments"],
+    ["attendance", "Attendance"],
+    ["exams", "Exams"],
+    ["results", "Results"],
+    ["homework", "Homework"],
+    ["submissions", "Submissions"]
+  ],
+  teacher: [
+    ["home", "Dashboard"],
+    ["attendance", "Attendance"],
+    ["exams", "Exams"],
+    ["results", "Results"],
+    ["homework", "Homework"],
+    ["submissions", "Submissions"]
+  ],
+  student: [
+    ["home", "Dashboard"],
+    ["attendance", "My Attendance"],
+    ["results", "My Results"],
+    ["homework", "Homework"],
+    ["submissions", "My Submissions"]
+  ],
+  parent: [
+    ["home", "Dashboard"],
+    ["attendance", "Attendance"],
+    ["results", "Results"],
+    ["homework", "Homework"],
+    ["submissions", "Submissions"]
+  ]
+};
+
+export function DashInner() {
+  const a = useAuth();
+  const [page, setPage] = useState("home");
+  const [notice, setNotice] = useState(null);
+
+  const notify = (message, error = 0) => {
+    setNotice({ message, error });
+  };
+
+  const menu = MENUS[a.profile?.role] || MENUS.student;
+
+  const changePage = p => {
+    setPage(p);
+    setNotice(null);
+  };
+
+  return html`
+    <div style=${{
+      minHeight: "100vh",
+      background: "var(--bg,#f4f6fb)",
+      padding: 16
+    }}>
+      <header class="card" style=${{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        gap: 12,
+        flexWrap: "wrap",
+        marginBottom: 16
+      }}>
+        <div>
+          <h2 style=${{margin:0}}>Coaching Portal</h2>
+          <small>
+            ${a.profile?.full_name} ·
+            ${LABEL[a.profile?.role] || a.profile?.role}
+          </small>
+        </div>
+
+        <div class="row">
+          ${a.profiles.length > 1 && html`
+            <button class="btn sm alt" onClick=${a.switchProfile}>
+              Switch Profile
+            </button>
+          `}
+          <button class="btn sm alt" onClick=${a.signOut}>
+            Logout
+          </button>
+        </div>
+      </header>
+
+      <div style=${{
+        display: "flex",
+        gap: 8,
+        flexWrap: "wrap",
+        marginBottom: 16
+      }}>
+        ${menu.map(([id, label]) => html`
+          <button
+            key=${id}
+            class=${page === id ? "btn sm" : "btn sm alt"}
+            onClick=${() => changePage(id)}
+          >
+            ${label}
+          </button>
+        `)}
+      </div>
+
+      ${notice && html`
+        <div class="card" style=${{
+          marginBottom: 12,
+          color: notice.error ? "var(--bad)" : "var(--ok)"
+        }}>
+          ${notice.message}
+          <button
+            class="btn sm alt"
+            onClick=${() => setNotice(null)}
+          >
+            Close
+          </button>
+        </div>
+      `}
+
+      ${page === "home" ? html`
+        <${Card} t="Welcome to your dashboard">
+          <h3>${a.profile?.full_name}</h3>
+          <p>
+            Your active profile:
+            <b>${LABEL[a.profile?.role] || a.profile?.role}</b>
+          </p>
+          <p>Select a module above to continue.</p>
+        <//>
+      ` : C[page] ? html`
+        <${Crud}
+          cfg=${C[page]}
+          notify=${notify}
+        />
+      ` : html`
+        <${Card} t="Page not found">
+          <button class="btn" onClick=${() => changePage("home")}>
+            Go to Dashboard
+          </button>
+        <//>
+      `}
+    </div>
+  `;
+}
+
+export function Portal() {
+  const a = useAuth();
+  const [kind, setKind] = useState("login");
+
+  if (a.loading) {
+    return html`<${Shell}><h2>Loading portal…</h2><//>`;
+  }
+
+  if (a.recovery) {
+    return html`<${Recovery}/>`;
+  }
+
+  if (!a.session) {
+    return html`
+      <${AuthScreen}
+        kind=${kind}
+        go=${setKind}
+      />
+    `;
+  }
+
+  if (!a.profile) {
+    return html`<${NotLinked}/>`;
+  }
+
+  return html`<${DashInner}/>`;
+}
+
+export default function CoachingPortal() {
+  return html`
+    <${AuthProvider}>
+      <${Portal}/>
+    <//>
+  `;
+}
+
