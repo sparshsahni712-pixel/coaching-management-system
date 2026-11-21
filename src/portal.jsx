@@ -633,3 +633,12 @@ if(error)throw error;
 
 submissions:{
 title:"Student submissions",table:"homework_submissions
+submissions: {
+  title: "Student Submissions",
+  table: "homework_submissions",
+  order: "created_at",
+  add: false,
+  edit: false,
+  del: false
+}
+};
