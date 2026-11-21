@@ -1,5 +1,5 @@
 {
-  "name": "lms-admin-api",
+  "name": "coaching-management-system2",
   "main": "src/index.js",
   "compatibility_date": "2026-11-01",
   // Keep variables you add in the Cloudflare dashboard (SUPABASE_URL, SUPABASE_ANON_KEY, secrets) across Git deploys.
