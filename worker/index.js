@@ -33,12 +33,17 @@ export default {
     try {
       if (origin && !allowed.includes(origin)) throw new HttpError(403, 'Origin not allowed');
       if (req.method === 'OPTIONS') return send(204);
-      if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY || !env.SUPABASE_SERVICE_ROLE_KEY) throw new HttpError(503, 'Server not configured');
+      const missing = ['SUPABASE_URL', 'SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY'].filter(k => !env[k]);   // names only, never values
+      if (new URL(req.url).pathname === '/api/health' && req.method === 'GET') return send(200, { ok: true, data: { missing } });
+      if (missing.length) throw new HttpError(503, 'Server not configured. Missing in this Worker: ' + missing.join(', '));
       if (new URL(req.url).pathname !== '/api/users' || req.method !== 'POST') throw new HttpError(404, 'Not found');
       const token = (req.headers.get('Authorization') || '').replace(/^Bearer /, '');
       if (!token) throw new HttpError(401, 'Sign in first');
       const who = await sb(env, '/auth/v1/user', { token });
-      if (!who.ok || !who.json?.id) throw new HttpError(401, 'Invalid session');
+      if (!who.ok || !who.json?.id) {   // say WHY (Supabase's own message; contains no secrets) so a wrong URL/key is easy to spot
+        const why = who.json?.msg || who.json?.message || who.json?.error_description || who.json?.error || '';
+        throw new HttpError(401, `Invalid session (Supabase replied ${who.status}${why ? ': ' + String(why).slice(0, 120) : ''}). Check that SUPABASE_URL and SUPABASE_ANON_KEY in this Worker belong to the SAME Supabase project as the website, then sign out and sign in again.`);
+      }
       // caller must be an admin: read with the CALLER's token so RLS applies
       const me = await sb(env, `/rest/v1/profiles?id=eq.${who.json.id}&select=role,institute_id`, { token });
       const p = me.ok && me.json && me.json[0];
@@ -51,20 +56,8 @@ export default {
       const adm = b.admission_number ? String(b.admission_number).trim().slice(0, 50) : null;
       if (b.batch_id && !UUID.test(b.batch_id)) throw new HttpError(400, 'Invalid batch');
       if (b.role === 'student' && b.batch_id) {
-  const bt = await sb(env, `/rest/v1/batches?id=eq.${b.batch_id}&institute_id=eq.${p.institute_id}&select=id`, { service: true });
-
-  if (!bt.ok) {
-    console.error('Batch query failed:', bt.status, bt.json);
-    throw new HttpError(500, 'Batch query failed. Check Worker logs.');
-  }
-
-  if (!bt.json?.length) {
-    console.error('Batch mismatch:', {
-      batch_id: b.batch_id,
-      admin_institute_id: p.institute_id
-    });
-    throw new HttpError(400, 'Batch ID or institute ID mismatch. Check Worker logs.');
-  }
+        const bt = await sb(env, `/rest/v1/batches?id=eq.${b.batch_id}&institute_id=eq.${p.institute_id}&select=id`, { service: true });
+        if (!bt.ok || !bt.json?.length) throw new HttpError(400, 'Batch not found in your institute');
       }
       let user = await findUserByEmail(env, email);
       if (user) {
