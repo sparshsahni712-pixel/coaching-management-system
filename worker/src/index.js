@@ -578,33 +578,6 @@ async function deleteModule(env, admin, module, id) {
 }
 
 /* ---------------- FEE PAYMENT HISTORY ---------------- */
-
-async function listPayments(env, admin, feeId) {
-  if (!UUID.test(feeId || "")) {
-    throw new HttpError(400, "Invalid fee ID");
-  }
-
-  const fee = await sb(
-    env,
-    `/rest/v1/fees?id=eq.${feeId}&institute_id=eq.${admin.institute_id}&select=id`,
-    { service: true }
-  );
-
-  if (!fee.ok || !fee.json?.length) {
-    throw new HttpError(404, "Fee record not found");
-  }
-
-  const result = await sb(
-    env,
-    `/rest/v1/fee_payments?fee_id=eq.${feeId}&institute_id=eq.${admin.institute_id}&select=*&order=payment_date.desc`,
-    { service: true }
-  );
-
-  if (!result.ok) throw new HttpError(500, "Could not load payment history");
-
-  return result.json || [];
-}
-
 async function addPayment(env, admin, feeId, body) {
   if (!UUID.test(feeId || "")) {
     throw new HttpError(400, "Invalid fee ID");
@@ -616,60 +589,31 @@ async function addPayment(env, admin, feeId, body) {
     throw new HttpError(400, "Enter a valid payment amount");
   }
 
-  const feeResult = await sb(
-    env,
-    `/rest/v1/fees?id=eq.${feeId}&institute_id=eq.${admin.institute_id}&select=*`,
-    { service: true }
-  );
-
-  if (!feeResult.ok || !feeResult.json?.length) {
-    throw new HttpError(404, "Fee record not found");
-  }
-
-  const fee = feeResult.json[0];
-
-  const paymentsResult = await sb(
-    env,
-    `/rest/v1/fee_payments?fee_id=eq.${feeId}&institute_id=eq.${admin.institute_id}&select=amount`,
-    { service: true }
-  );
-
-  if (!paymentsResult.ok) {
-    throw new HttpError(500, "Could not verify payment history");
-  }
-
-  const alreadyPaid = (paymentsResult.json || []).reduce(
-    (sum, payment) => sum + Number(payment.amount || 0),
-    0
-  );
-
-  if (alreadyPaid + amount > Number(fee.amount)) {
-    throw new HttpError(400, "Payment exceeds pending fees");
-  }
-
-  const payment = await sb(env, "/rest/v1/fee_payments", {
+  const result = await sb(env, "/rest/v1/rpc/admin_record_fee_payment", {
     method: "POST",
     service: true,
-    prefer: "return=representation",
     body: {
-      fee_id: feeId,
-      institute_id: admin.institute_id,
-      student_id: fee.student_id,
-      amount,
-      payment_date: body.payment_date || new Date().toISOString(),
-      payment_method: body.payment_method || "other",
-      reference_number: body.reference_number || null,
-      received_by: admin.id
+      p_fee_id: feeId,
+      p_institute_id: admin.institute_id,
+      p_amount: amount,
+      p_payment_date: body.payment_date || new Date().toISOString(),
+      p_payment_method: body.payment_method || "other",
+      p_reference_number: body.reference_number || null,
+      p_received_by: admin.id
     }
   });
 
-  if (!payment.ok) {
-    throw new HttpError(500, "Could not save payment");
+  if (!result.ok) {
+    const message =
+      result.json?.message ||
+      result.json?.details ||
+      "Could not save payment";
+
+    throw new HttpError(400, message);
   }
 
-  return payment.json?.[0] || { saved: true };
-                            }
-
+  return result.json;
+}
 
 /* ---------------- MAIN REQUEST HANDLER ---------------- */
 
