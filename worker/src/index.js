@@ -417,116 +417,115 @@ async function deleteUserProfile(env, admin, profileId) {
 
   return { id: profileId, deleted: true };
         }
+
+async   }
+
+  if (module === "expenses" && data.amount !== undefined) {
+    data.amount = Number(data.amount);
+  }
+
+  const result = await sb(
+    env,
+    `/rest/v1/${config.table}?id=eq.${id}&institute_id=eq.${admin.institute_id}`,
+    {
+      method: "PATCH",
+      service: true,
+      prefer: "return=representation",
+      body: data
+    }
+  );
+
+  if (!result.ok) throw new HttpError(500, `Could not update ${module}`);
+  if (!result.json?.length) throw new HttpError(404, "Record not found");
+
+  return result.json[0];
+}
+
 /* ---------------- MANAGEMENT MODULES ---------------- */
 
 const MODULES = {
   fees: {
     table: "fees",
-    fields: [
-      "student_profile_id",
-      "total_amount",
-      "paid_amount",
-      "due_date",
-      "status",
-      "description"
-    ],
-    required: ["student_profile_id", "total_amount"],
     order: "created_at.desc"
   },
   expenses: {
     table: "expenses",
-    fields: ["title", "category", "amount", "expense_date", "description"],
-    required: ["title", "category", "amount", "expense_date"],
     order: "expense_date.desc"
   },
   events: {
     table: "events",
-    fields: [
-      "title",
-      "description",
-      "event_date",
-      "event_time",
-      "venue",
-      "poster_url"
-    ],
-    required: ["title", "event_date"],
     order: "event_date.desc"
   }
 };
 
 function cleanModuleBody(module, body, partial = false) {
-  const config = MODULES[module];
-  const result = {};
+  const fields = {
+    fees: ["student_id", "amount", "status", "due_date"],
+    expenses: ["title", "category", "amount", "expense_date", "description"],
+    events: ["title", "description", "event_date", "event_time", "venue", "poster_url"]
+  };
 
-  for (const field of config.fields) {
-    if (body[field] !== undefined) result[field] = body[field];
+  const required = {
+    fees: ["student_id", "amount"],
+    expenses: ["title", "category", "amount", "expense_date"],
+    events: ["title", "event_date"]
+  };
+
+  const data = {};
+
+  for (const field of fields[module]) {
+    if (body[field] !== undefined) data[field] = body[field];
   }
 
   if (!partial) {
-    for (const field of config.required) {
-      if (
-        result[field] === undefined ||
-        result[field] === null ||
-        result[field] === ""
-      ) {
+    for (const field of required[module]) {
+      if (data[field] === undefined || data[field] === null || data[field] === "") {
         throw new HttpError(400, `${field} is required`);
       }
     }
   }
 
   if (module === "fees") {
-    if (result.student_profile_id && !UUID.test(result.student_profile_id)) {
-      throw new HttpError(400, "Invalid student profile ID");
-    }
-
-    for (const field of ["total_amount", "paid_amount"]) {
-      if (
-        result[field] !== undefined &&
-        (!Number.isFinite(Number(result[field])) || Number(result[field]) < 0)
-      ) {
-        throw new HttpError(400, `Invalid ${field}`);
-      }
+    if (data.student_id && !UUID.test(data.student_id)) {
+      throw new HttpError(400, "Invalid student ID");
     }
 
     if (
-      result.total_amount !== undefined &&
-      Number(result.total_amount) <= 0
+      data.amount !== undefined &&
+      (!Number.isFinite(Number(data.amount)) || Number(data.amount) <= 0)
     ) {
-      throw new HttpError(400, "Total amount must be greater than zero");
+      throw new HttpError(400, "Invalid fee amount");
     }
 
-    if (
-      result.paid_amount !== undefined &&
-      result.total_amount !== undefined &&
-      Number(result.paid_amount) > Number(result.total_amount)
-    ) {
-      throw new HttpError(400, "Paid amount cannot exceed total amount");
-    }
+    if (data.amount !== undefined) data.amount = Number(data.amount);
   }
 
-  if (
-    module === "expenses" &&
-    result.amount !== undefined &&
-    (!Number.isFinite(Number(result.amount)) || Number(result.amount) <= 0)
-  ) {
-    throw new HttpError(400, "Expense amount must be greater than zero");
+  if (module === "expenses") {
+    if (
+      data.amount !== undefined &&
+      (!Number.isFinite(Number(data.amount)) || Number(data.amount) <= 0)
+    ) {
+      throw new HttpError(400, "Invalid expense amount");
+    }
+
+    if (data.amount !== undefined) data.amount = Number(data.amount);
   }
 
   if (
     module === "events" &&
-    result.poster_url &&
-    !/^https?:\/\//i.test(result.poster_url)
+    data.poster_url &&
+    !/^https?:\/\//i.test(data.poster_url)
   ) {
-    throw new HttpError(400, "Poster URL must be a valid HTTP or HTTPS URL");
+    throw new HttpError(400, "Invalid poster URL");
   }
 
-  return result;
+  return data;
 }
 
-async function verifyStudent(env, admin, profileId) {
+async function verifyStudent(env, admin, studentId) {
   const result = await sb(
     env,
-    `/rest/v1/profiles?id=eq.${profileId}&institute_id=eq.${admin.institute_id}&role=eq.student&select=id`,
+    `/rest/v1/students?id=eq.${studentId}&institute_id=eq.${admin.institute_id}&select=id`,
     { service: true }
   );
 
@@ -554,21 +553,7 @@ async function createModule(env, admin, module, body) {
   const data = cleanModuleBody(module, body);
 
   if (module === "fees") {
-    await verifyStudent(env, admin, data.student_profile_id);
-
-    data.paid_amount = Number(data.paid_amount || 0);
-    data.total_amount = Number(data.total_amount);
-
-    data.status =
-      data.paid_amount >= data.total_amount
-        ? "paid"
-        : data.paid_amount > 0
-          ? "partial"
-          : "pending";
-  }
-
-  if (module === "expenses") {
-    data.amount = Number(data.amount);
+    await verifyStudent(env, admin, data.student_id);
   }
 
   const result = await sb(env, `/rest/v1/${config.table}`, {
@@ -598,50 +583,8 @@ async function updateModule(env, admin, module, id, body) {
     throw new HttpError(400, "No valid fields to update");
   }
 
-  if (module === "fees") {
-    if (data.student_profile_id) {
-      await verifyStudent(env, admin, data.student_profile_id);
-    }
-
-    if (data.total_amount !== undefined) {
-      data.total_amount = Number(data.total_amount);
-    }
-
-    if (data.paid_amount !== undefined) {
-      data.paid_amount = Number(data.paid_amount);
-    }
-
-    if (
-      data.total_amount !== undefined ||
-      data.paid_amount !== undefined
-    ) {
-      const old = await sb(
-        env,
-        `/rest/v1/fees?id=eq.${id}&institute_id=eq.${admin.institute_id}&select=total_amount,paid_amount`,
-        { service: true }
-      );
-
-      if (!old.ok || !old.json?.length) {
-        throw new HttpError(404, "Fee record not found");
-      }
-
-      const total =
-        data.total_amount ?? Number(old.json[0].total_amount);
-
-      const paid =
-        data.paid_amount ?? Number(old.json[0].paid_amount);
-
-      if (paid > total) {
-        throw new HttpError(400, "Paid amount cannot exceed total amount");
-      }
-
-      data.status =
-        paid >= total ? "paid" : paid > 0 ? "partial" : "pending";
-    }
-  }
-
-  if (module === "expenses" && data.amount !== undefined) {
-    data.amount = Number(data.amount);
+  if (module === "fees" && data.student_id) {
+    await verifyStudent(env, admin, data.student_id);
   }
 
   const result = await sb(
@@ -734,17 +677,25 @@ async function addPayment(env, admin, feeId, body) {
   }
 
   const fee = feeResult.json[0];
-  const total = Number(fee.total_amount);
-  const paid = Number(fee.paid_amount || 0);
 
-  if (paid + amount > total) {
-    throw new HttpError(400, "Payment exceeds pending fees");
+  const paymentsResult = await sb(
+    env,
+    `/rest/v1/fee_payments?fee_id=eq.${feeId}&institute_id=eq.${admin.institute_id}&select=amount`,
+    { service: true }
+  );
+
+  if (!paymentsResult.ok) {
+    throw new HttpError(500, "Could not verify payment history");
   }
 
-  const newPaid = paid + amount;
+  const alreadyPaid = (paymentsResult.json || []).reduce(
+    (sum, payment) => sum + Number(payment.amount || 0),
+    0
+  );
 
-  const status =
-    newPaid >= total ? "paid" : "partial";
+  if (alreadyPaid + amount > Number(fee.amount)) {
+    throw new HttpError(400, "Payment exceeds pending fees");
+  }
 
   const payment = await sb(env, "/rest/v1/fee_payments", {
     method: "POST",
@@ -753,12 +704,12 @@ async function addPayment(env, admin, feeId, body) {
     body: {
       fee_id: feeId,
       institute_id: admin.institute_id,
-      student_profile_id: fee.student_profile_id,
+      student_id: fee.student_id,
       amount,
-      payment_date:
-        body.payment_date || new Date().toISOString().slice(0, 10),
+      payment_date: body.payment_date || new Date().toISOString(),
       payment_method: body.payment_method || "other",
-      note: body.note || null
+      reference_number: body.reference_number || null,
+      received_by: admin.id
     }
   });
 
@@ -766,26 +717,10 @@ async function addPayment(env, admin, feeId, body) {
     throw new HttpError(500, "Could not save payment");
   }
 
-  const update = await sb(
-    env,
-    `/rest/v1/fees?id=eq.${feeId}&institute_id=eq.${admin.institute_id}`,
-    {
-      method: "PATCH",
-      service: true,
-      prefer: "return=minimal",
-      body: {
-        paid_amount: newPaid,
-        status
-      }
-    }
-  );
-
-  if (!update.ok) {
-    throw new HttpError(500, "Payment saved, but fee balance update failed");
-  }
-
   return payment.json?.[0] || { saved: true };
-    }
+                            }
+
+
 /* ---------------- MAIN REQUEST HANDLER ---------------- */
 
 function corsHeaders(request, env) {
