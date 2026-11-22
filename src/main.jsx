@@ -2,7 +2,7 @@ import React,{useState} from "react";
 import {createRoot} from "react-dom/client";
 import "./styles.css";
 import {html} from "./ui";
-import * as Portal from "./portal";
+import {AuthProvider,AuthScreen,Dash,NotLinked,Recovery,useAuth} from "./portal";
 const ROLES={student:{n:"Student",i:"🎓",d:"Attendance, homework, results, fees"},parent:{n:"Parent",i:"👪",d:"Track your child's progress"},teacher:{n:"Teacher",i:"👩‍🏫",d:"Batches, attendance, homework"},admin:{n:"Admin / Owner",i:"🏫",d:"Run the whole institute"}};
 const FE=[["📊","Smart dashboards"],["🗓️","Attendance tracking"],["📝","Offline exam results"],["📚","Homework & materials"],["💳","Fee tracking"],["🔔","Notifications"]];
 function Site({go,page}){const P=["home","about","features","services","contact"];
