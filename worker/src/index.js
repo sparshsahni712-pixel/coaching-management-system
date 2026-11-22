@@ -706,7 +706,7 @@ async function handleRequest(request, env) {
     /* ADMIN USER MANAGEMENT */
 
     if (path === "/api/users" && method === "POST") {
-      const admin = await requireAdmin(env, auth);
+      const admin = await getActiveProfile(env, auth);
       const result = await createProfile(env, admin, body);
 
       return jsonResponse({
