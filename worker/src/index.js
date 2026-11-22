@@ -706,7 +706,7 @@ async function handleRequest(request, env) {
     /* ADMIN USER MANAGEMENT */
 
     if (path === "/api/users" && method === "POST") {
-      const admin = await getActiveProfile(env, auth);
+      const admin = await getAdmin(env, auth);
       const result = await createProfile(env, admin, body);
 
       return jsonResponse({
@@ -729,8 +729,21 @@ async function handleRequest(request, env) {
 
     /* ALL REMAINING MANAGEMENT ROUTES REQUIRE ADMIN */
 
-    const admin = await requireAdmin(env, auth);
+    const admin = await getActiveProfile(env, auth);
+/* EVENTS - ALL ROLES CAN VIEW */
 
+if (path === "/api/events" && method === "GET") {
+  const result = await listModule(env, activeProfile, "events");
+
+  return jsonResponse({
+    ok: true,
+    data: result
+  }, 200, headers);
+}
+
+/* ADMIN-ONLY MANAGEMENT */
+
+const admin = await requireAdmin(env, auth);
     /* FEE PAYMENTS */
 
     const paymentFeeId = readRoute(
