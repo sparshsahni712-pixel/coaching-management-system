@@ -838,6 +838,9 @@ export function Portal() {
   return html`<${DashInner}/>`;
 }
 
+export function Dash() {
+  return html`<${DashInner}/>`;
+}
 export default function CoachingPortal() {
   return html`
     <${AuthProvider}>
