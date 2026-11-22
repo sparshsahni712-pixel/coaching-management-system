@@ -424,3 +424,4 @@ function EventsList({ items, admin, onEdit, onDelete }) {
     </div>
   </div>)}</div>;
 }
+console.log("PORTAL VERSION 2 LOADED");
