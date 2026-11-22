@@ -729,7 +729,7 @@ async function handleRequest(request, env) {
 
     /* ALL REMAINING MANAGEMENT ROUTES REQUIRE ADMIN */
 
-    const admin = await getActiveProfile(env, auth);
+    const activeProfile = await getActiveProfile(env, auth);
 /* EVENTS - ALL ROLES CAN VIEW */
 
 if (path === "/api/events" && method === "GET") {
