@@ -546,3 +546,4 @@ function EventsList({ items, admin, onEdit, onDelete }) {
   </div>)}</div>;
 }
 console.log("PORTAL VERSION 3 LOADED");
+export { useAuth };
