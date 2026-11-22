@@ -324,72 +324,30 @@ async function deleteUserProfile(env, admin, profileId) {
     throw new HttpError(400, "Invalid profile ID");
   }
 
-  const profileResult = await sb(
+  const result = await sb(
     env,
-    `/rest/v1/profiles?id=eq.${profileId}&institute_id=eq.${admin.institute_id}&select=id,role`,
-    { service: true }
+    "/rest/v1/rpc/admin_delete_profile",
+    {
+      method: "POST",
+      service: true,
+      body: {
+        p_profile_id: profileId,
+        p_institute_id: admin.institute_id
+      }
+    }
   );
 
-  if (!profileResult.ok || !profileResult.json?.length) {
-    throw new HttpError(404, "User profile not found in your institute");
+  if (!result.ok) {
+    const message =
+      result.json?.message ||
+      result.json?.details ||
+      "Could not safely delete profile";
+
+    throw new HttpError(409, message);
   }
 
-  const target = profileResult.json[0];
-
-  if (!["student", "parent", "teacher"].includes(target.role)) {
-    throw new HttpError(403, "Only students, parents and teachers can be deleted");
-  }
-
-  const links = await sb(
-    env,
-    `/rest/v1/user_profile_links?profile_id=eq.${profileId}&select=auth_user_id`,
-    { service: true }
-  );
-
-  if (!links.ok) throw new HttpError(500, "Could not find linked login account");
-
-  const authIds = [...new Set((links.json || []).map(x => x.auth_user_id))];
-
-  if (target.role === "student") {
-    const student = await sb(
-      env,
-      `/rest/v1/students?profile_id=eq.${profileId}`,
-      { method: "DELETE", service: true }
-    );
-
-    if (!student.ok) throw new HttpError(500, "Could not remove student record");
-  }
-
-  const sessionDelete = await sb(
-    env,
-    `/rest/v1/active_profile_sessions?profile_id=eq.${profileId}`,
-    { method: "DELETE", service: true }
-  );
-
-  if (!sessionDelete.ok) {
-    throw new HttpError(500, "Could not remove active profile sessions");
-  }
-
-  const linkDelete = await sb(
-    env,
-    `/rest/v1/user_profile_links?profile_id=eq.${profileId}`,
-    { method: "DELETE", service: true }
-  );
-
-  if (!linkDelete.ok) throw new HttpError(500, "Could not remove profile link");
-
-  const profileDelete = await sb(
-    env,
-    `/rest/v1/profiles?id=eq.${profileId}&institute_id=eq.${admin.institute_id}`,
-    { method: "DELETE", service: true }
-  );
-
-  if (!profileDelete.ok) {
-    throw new HttpError(
-      409,
-      "Profile has related records. Related database records must be handled before deletion."
-    );
-  }
+  const authIds = result.json?.auth_user_ids || [];
+  const deletedAccounts = [];
 
   for (const authId of authIds) {
     const remaining = await sb(
@@ -399,46 +357,38 @@ async function deleteUserProfile(env, admin, profileId) {
     );
 
     if (!remaining.ok) {
-      throw new HttpError(500, "Could not verify remaining linked profiles");
+      throw new HttpError(
+        500,
+        "Profile deleted, but remaining account links could not be checked"
+      );
     }
 
     if (!remaining.json?.length) {
       const deleted = await sb(
         env,
         `/auth/v1/admin/users/${authId}`,
-        { method: "DELETE", service: true }
+        {
+          method: "DELETE",
+          service: true
+        }
       );
 
       if (!deleted.ok) {
-        throw new HttpError(502, "Profile deleted, but login account deletion failed");
+        throw new HttpError(
+          502,
+          "Profile deleted, but login account deletion failed"
+        );
       }
+
+      deletedAccounts.push(authId);
     }
   }
 
-  return { id: profileId, deleted: true };
-        }
-
-async   }
-
-  if (module === "expenses" && data.amount !== undefined) {
-    data.amount = Number(data.amount);
-  }
-
-  const result = await sb(
-    env,
-    `/rest/v1/${config.table}?id=eq.${id}&institute_id=eq.${admin.institute_id}`,
-    {
-      method: "PATCH",
-      service: true,
-      prefer: "return=representation",
-      body: data
-    }
-  );
-
-  if (!result.ok) throw new HttpError(500, `Could not update ${module}`);
-  if (!result.json?.length) throw new HttpError(404, "Record not found");
-
-  return result.json[0];
+  return {
+    id: profileId,
+    deleted: true,
+    deletedAccounts
+  };
 }
 
 /* ---------------- MANAGEMENT MODULES ---------------- */
