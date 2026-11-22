@@ -410,7 +410,7 @@ const MODULES = {
 
 function cleanModuleBody(module, body, partial = false) {
   const fields = {
-    fees: ["student_id", "amount", "status", "due_date"],
+    fees: ["student_id", "amount", "due_date"],
     expenses: ["title", "category", "amount", "expense_date", "description"],
     events: ["title", "description", "event_date", "event_time", "venue", "poster_url"]
   };
