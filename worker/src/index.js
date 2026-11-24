@@ -1078,12 +1078,24 @@ async function askGemini(env, message, profile) {
     }
   );
 
-  const result = await response.json();
+const responseText = await response.text();
+let result = {};
 
-  if (!response.ok) {
-    throw new HttpError(502, "AI service request failed");
-  }
+try {
+  result = responseText ? JSON.parse(responseText) : {};
+} catch {
+  result = {};
+}
 
+if (!response.ok) {
+  const apiMessage =
+    result?.error?.message || "Gemini returned an unreadable error response";
+
+  throw new HttpError(
+    502,
+    `Gemini API error (${response.status}): ${apiMessage}`
+  );
+}
   const answer = result.candidates?.[0]?.content?.parts
     ?.map(part => part.text || "")
     .join("")
