@@ -1210,7 +1210,14 @@ async function handleRequest(request, env) {
     if (!activeProfile.institute_id) {
       throw new HttpError(403, "This profile is not attached to an institute");
     }
+    
+/* AI CHAT ROUTE */
 
+if (path === "/api/ai/chat" && method === "POST") {
+  const answer = await askGemini(env, body.message, activeProfile);
+
+  return ok({ answer });
+}
     /* READS ALLOWED FOR EVERY ROLE (scoped to what that profile may see) */
 
     if (method === "GET") {
