@@ -175,6 +175,11 @@ export function AuthScreen({ kind = "login", go = () => {} }) {
     <div className="card">
       <h2>{kind === "register" ? "Create account" : kind === "forgot" ? "Reset password" : "Welcome back"}</h2>
       <p className="muted">Coaching LMS secure account access</p>
+      {!configured && (
+  <div className="notice error">
+    Supabase environment variables are missing in this build.
+  </div>
+)}
       {error && <div className="notice error">{error}</div>}
       {notice && <div className="notice success">{notice}</div>}
       <form onSubmit={submit}>
