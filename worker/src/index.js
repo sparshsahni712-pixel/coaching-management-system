@@ -766,7 +766,103 @@ async function listParents(env, admin) {
     student_ids: links.filter(l => l.parent_profile_id === x.id).map(l => l.student_id)
   }));
 }
+async function listTeachers(env, admin) {
+  const teachers = await restGet(
+    env,
+    `/rest/v1/profiles?institute_id=eq.${admin.institute_id}&role=eq.teacher&select=id,full_name&order=full_name.asc`,
+    "teachers"
+  );
 
+  if (!teachers.length) return [];
+
+  const assignments = await restGet(
+    env,
+    `/rest/v1/teacher_batch_assignments?institute_id=eq.${admin.institute_id}&select=teacher_profile_id,batch_id`,
+    "teacher assignments"
+  );
+
+  const batches = await listBatches(env, admin);
+
+  return teachers.map(teacher => ({
+    ...teacher,
+    batch_ids: assignments
+      .filter(a => a.teacher_profile_id === teacher.id)
+      .map(a => a.batch_id),
+    batches: batches.filter(batch =>
+      assignments.some(a =>
+        a.teacher_profile_id === teacher.id &&
+        a.batch_id === batch.id
+      )
+    )
+  }));
+}
+
+async function assignTeacherBatch(env, admin, body) {
+  const teacherId = String(body.teacher_profile_id || "");
+  const batchId = String(body.batch_id || "");
+
+  if (!UUID.test(teacherId) || !UUID.test(batchId)) {
+    throw new HttpError(400, "Choose a valid teacher and batch");
+  }
+
+  const teacher = await restGet(
+    env,
+    `/rest/v1/profiles?id=eq.${teacherId}&institute_id=eq.${admin.institute_id}&role=eq.teacher&select=id`,
+    "teacher"
+  );
+
+  if (!teacher.length) {
+    throw new HttpError(404, "Teacher not found");
+  }
+
+  const batch = await restGet(
+    env,
+    `/rest/v1/batches?id=eq.${batchId}&institute_id=eq.${admin.institute_id}&select=id`,
+    "batch"
+  );
+
+  if (!batch.length) {
+    throw new HttpError(404, "Batch not found");
+  }
+
+  const existing = await restGet(
+    env,
+    `/rest/v1/teacher_batch_assignments?institute_id=eq.${admin.institute_id}&teacher_profile_id=eq.${teacherId}&batch_id=eq.${batchId}&select=id`,
+    "assignment"
+  );
+
+  if (existing.length) return { assigned: true };
+
+  await insertRow(
+    env,
+    "teacher_batch_assignments",
+    { teacher_profile_id: teacherId, batch_id: batchId },
+    admin.institute_id
+  );
+
+  return { assigned: true };
+}
+
+async function removeTeacherBatch(env, admin, params) {
+  const teacherId = params.get("teacher_profile_id");
+  const batchId = params.get("batch_id");
+
+  if (!UUID.test(teacherId || "") || !UUID.test(batchId || "")) {
+    throw new HttpError(400, "Invalid teacher or batch");
+  }
+
+  const result = await sb(
+    env,
+    `/rest/v1/teacher_batch_assignments?institute_id=eq.${admin.institute_id}&teacher_profile_id=eq.${teacherId}&batch_id=eq.${batchId}`,
+    { method: "DELETE", service: true }
+  );
+
+  if (!result.ok) {
+    throw new HttpError(500, "Could not remove teacher assignment");
+  }
+
+  return { removed: true };
+}
 async function checkParentAndStudent(env, admin, body) {
   const parentId = String(body.parent_profile_id || "");
   const studentId = String(body.student_id || "");
