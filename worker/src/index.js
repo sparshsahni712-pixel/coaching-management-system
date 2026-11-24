@@ -1128,6 +1128,124 @@ if (!response.ok) {
 
   return answer;
 }
+
+/* ---------------- ATTENDANCE HELPERS ---------------- */
+
+function validAttendanceDate(value) {
+  const date = String(value || "");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return false;
+
+  const parsed = new Date(date + "T00:00:00Z");
+  return !Number.isNaN(parsed.getTime()) &&
+    parsed.toISOString().slice(0, 10) === date;
+}
+
+const ATTENDANCE_STATUSES = new Set([
+  "present",
+  "absent",
+  "late",
+  "leave"
+]);
+
+async function getAttendance(env, profile, batchId, date) {
+  await assertBatchAccess(env, profile, batchId);
+
+  if (!validAttendanceDate(date)) {
+    throw new HttpError(400, "Invalid attendance date");
+  }
+
+  const students = await restGet(
+    env,
+    `/rest/v1/students?institute_id=eq.${profile.institute_id}&batch_id=eq.${batchId}&select=id,profile_id,admission_number,profiles:profile_id(full_name)&order=admission_number.asc`,
+    "attendance students"
+  );
+
+  const attendance = await restGet(
+    env,
+    `/rest/v1/attendance?institute_id=eq.${profile.institute_id}&batch_id=eq.${batchId}&attendance_date=eq.${date}&select=id,student_id,status`,
+    "attendance records"
+  );
+
+  return students.map(student => ({
+    ...student,
+    attendance: attendance.find(row => row.student_id === student.id)?.status || null
+  }));
+}
+
+async function saveAttendance(env, profile, body) {
+  const batchId = String(body.batch_id || "");
+  const date = String(body.attendance_date || "");
+  const records = body.records;
+
+  await assertBatchAccess(env, profile, batchId);
+
+  if (!validAttendanceDate(date)) {
+    throw new HttpError(400, "Invalid attendance date");
+  }
+
+  if (!Array.isArray(records) || records.length === 0) {
+    throw new HttpError(400, "Attendance records are required");
+  }
+
+  const seen = new Set();
+
+  for (const record of records) {
+    if (!UUID.test(record.student_id || "")) {
+      throw new HttpError(400, "Invalid student ID");
+    }
+
+    if (!ATTENDANCE_STATUSES.has(record.status)) {
+      throw new HttpError(400, "Invalid attendance status");
+    }
+
+    if (seen.has(record.student_id)) {
+      throw new HttpError(400, "Duplicate student in attendance");
+    }
+
+    seen.add(record.student_id);
+  }
+
+  const students = await restGet(
+    env,
+    `/rest/v1/students?institute_id=eq.${profile.institute_id}&batch_id=eq.${batchId}&id=${inList([...seen])}&select=id`,
+    "batch students"
+  );
+
+  if (students.length !== seen.size) {
+    throw new HttpError(400, "One or more students do not belong to this batch");
+  }
+
+  const rows = records.map(record => ({
+    student_id: record.student_id,
+    batch_id: batchId,
+    institute_id: profile.institute_id,
+    attendance_date: date,
+    status: record.status,
+    marked_by: profile.id
+  }));
+
+  const result = await sb(
+    env,
+    "/rest/v1/attendance?on_conflict=student_id,attendance_date",
+    {
+      method: "POST",
+      service: true,
+      prefer: "resolution=merge-duplicates,return=representation",
+      body: rows
+    }
+  );
+
+  if (!result.ok) {
+    throw new HttpError(
+      500,
+      "Could not save attendance" +
+        (detail(result) ? ": " + detail(result) : "")
+    );
+  }
+
+  return result.json || [];
+}
+
 /* ---------------- MAIN REQUEST HANDLER ---------------- */
 
 function corsHeaders(request, env) {
