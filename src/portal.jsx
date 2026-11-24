@@ -319,6 +319,12 @@ export function Dash() {
   const [section, setSection] = useState("overview");
   const [records, setRecords] = useState({ fees: [], expenses: [], events: [], payments: [], exams: [], results: [], batches: [], parents: [] });
   const [students, setStudents] = useState([]);
+  const [attendanceDate, setAttendanceDate] = useState(
+  new Date().toISOString().slice(0, 10)
+);
+const [attendanceBatch, setAttendanceBatch] = useState("");
+const [attendanceRows, setAttendanceRows] = useState([]);
+const [attendanceLoading, setAttendanceLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
