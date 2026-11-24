@@ -1030,7 +1030,63 @@ async function addPayment(env, admin, feeId, body) {
 
   return result.json;
 }
+/* ---------------- GEMINI AI HELPER ---------------- */
 
+async function askGemini(env, message, profile) {
+  const apiKey = val(env, "GEMINI_API_KEY");
+
+  if (!apiKey) {
+    throw new HttpError(503, "AI service is not configured");
+  }
+
+  const question = String(message || "").trim();
+
+  if (!question || question.length > 2000) {
+    throw new HttpError(400, "Message must be 1-2000 characters");
+  }
+
+  const response = await fetch(
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": apiKey
+      },
+      body: JSON.stringify({
+        systemInstruction: {
+          parts: [{
+            text: "You are the helpful AI assistant inside a coaching management system. Help with general questions about education and using the system. Do not claim to access student records or attendance unless verified data is explicitly provided. Never reveal private information."
+          }]
+        },
+        contents: [{
+          role: "user",
+          parts: [{ text: question }]
+        }],
+        generationConfig: {
+          maxOutputTokens: 500
+        }
+      })
+    }
+  );
+
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new HttpError(502, "AI service request failed");
+  }
+
+  const answer = result.candidates?.[0]?.content?.parts
+    ?.map(part => part.text || "")
+    .join("")
+    .trim();
+
+  if (!answer) {
+    throw new HttpError(502, "AI could not generate a response");
+  }
+
+  return answer;
+}
 /* ---------------- MAIN REQUEST HANDLER ---------------- */
 
 function corsHeaders(request, env) {
