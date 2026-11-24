@@ -57,6 +57,8 @@ function decodeJwt(token) {
   }
 }
 
+async function authenticate(env, token) {
+  if (!token) throw new HttpError(401, "Sign in first");
   const result = await sb(env, "/auth/v1/user", { token });
 
   if (!result.ok || !result.json?.id) {
