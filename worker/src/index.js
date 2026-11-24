@@ -1053,30 +1053,48 @@ async function askGemini(env, message, profile) {
     throw new HttpError(400, "Message must be 1-2000 characters");
   }
 
-  const response = await fetch(
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": apiKey
-      },
-      body: JSON.stringify({
-        systemInstruction: {
-          parts: [{
-            text: "You are the helpful AI assistant inside a coaching management system. Help with general questions about education and using the system. Do not claim to access student records or attendance unless verified data is explicitly provided. Never reveal private information."
-          }]
-        },
-        contents: [{
-          role: "user",
-          parts: [{ text: question }]
-        }],
-        generationConfig: {
-          maxOutputTokens: 500
-        }
-      })
+    const requestBody = {
+    systemInstruction: {
+      parts: [{
+        text: "You are the helpful AI assistant inside a coaching management system. Help with general questions about education and using the system. Do not claim to access student records or attendance unless verified data is explicitly provided. Never reveal private information."
+      }]
+    },
+    contents: [{
+      role: "user",
+      parts: [{ text: question }]
+    }],
+    generationConfig: {
+      maxOutputTokens: 500
     }
-  );
+  };
+
+  let response;
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    response = await fetch(
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey
+        },
+        body: JSON.stringify(requestBody)
+      }
+    );
+
+    if (
+      response.ok ||
+      ![429, 500, 502, 503, 504].includes(response.status) ||
+      attempt === 2
+    ) {
+      break;
+    }
+
+    await new Promise(resolve =>
+      setTimeout(resolve, 1000 * (2 ** attempt))
+    );
+  }
 
 const responseText = await response.text();
 let result = {};
