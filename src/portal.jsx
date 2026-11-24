@@ -322,14 +322,19 @@ export function Dash() {
   const teacher = role === "teacher";
   const canManage = admin || teacher;
   const [section, setSection] = useState("overview");
-  const [records, setRecords] = useState({
-  fees: [], expenses: [], events: [], payments: [],
-  exams: [], results: [], batches: [], parents: [], teachers: []
-});
-const [selectedTeacher, setSelectedTeacher] = useState("");
-const [selectedTeacherBatch, setSelectedTeacherBatch] = useState("");
-const [teacherSaving, setTeacherSaving] = useState(false);
-  const [students, setStudents] = useState([]);
+  const [fees, expenses, events, payments, exams, results, batches, parents, studentRows, teachers] = await Promise.all([
+  load("Fees", "/api/fees", role !== "teacher"),
+  load("Expenses", "/api/expenses", admin),
+  load("Events", "/api/events"),
+  load("Payments", "/api/payments", role !== "teacher"),
+  load("Exams", "/api/exams"),
+  load("Results", "/api/results"),
+  load("Batches", "/api/batches"),
+  load("Parents", "/api/parents", admin),
+  load("Students", "/api/students"),
+  load("Teachers", "/api/teachers", admin),
+]);
+setRecords({ fees, expenses, events, payments, exams, results, batches, parents, teachers });;
   const [attendanceDate, setAttendanceDate] = useState(
   new Date().toISOString().slice(0, 10)
 );
