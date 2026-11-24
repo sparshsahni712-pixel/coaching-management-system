@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "coaching-management-system2",
+  "name": "new-version",
   "compatibility_date": "2026-11-22",
   "assets": {
     "directory": "./dist",
