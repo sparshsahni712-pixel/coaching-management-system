@@ -1427,7 +1427,15 @@ if (path === "/api/ai/chat" && method === "POST") {
         return ok(await deleteExam(env, adminOnly, examId));
       }
     }
+/* ATTENDANCE SAVE: ADMIN OR ASSIGNED TEACHER */
 
+if (path === "/api/attendance" && method === "POST") {
+  if (!canManage) {
+    throw new HttpError(403, "Only admins and teachers can mark attendance");
+  }
+
+  return ok(await saveAttendance(env, activeProfile, body), 201);
+}
     /* ADMIN-ONLY MANAGEMENT */
 
     const admin = await requireAdmin(env, auth);
