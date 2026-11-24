@@ -685,12 +685,26 @@ async function visibleBatchIds(env, p) {
   return [...new Set(rows.map(x => x.batch_id).filter(Boolean))];
 }
 
+
 async function listBatches(env, p) {
+  if (p.role === "teacher") {
+    const ids = await teacherBatchIds(env, p);
+    if (!ids.length) return [];
+
+    return restGet(
+      env,
+      `/rest/v1/batches?institute_id=eq.${p.institute_id}&id=${inList(ids)}&select=id,name&order=name.asc`,
+      "assigned batches"
+    );
+  }
+
   return restGet(
     env,
     `/rest/v1/batches?institute_id=eq.${p.institute_id}&select=id,name&order=name.asc`,
     "batches"
   );
+}
+
 }
 
 async function createBatch(env, admin, body) {
