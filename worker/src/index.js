@@ -57,32 +57,11 @@ function decodeJwt(token) {
   }
 }
 
-async function authenticate(env, token) {
-  if (!token) throw new HttpError(401, "Sign in first");
+  const result = await sb(env, "/auth/v1/user", { token });
 
-     const tokenClaims = JSON.parse(
-      atob(currentSession.access_token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))
-    );
-
-    const { data: active } = await supabase
-      .from("active_profile_sessions")
-      .select("profile_id")
-      .eq("auth_user_id", currentSession.user.id)
-      .eq("session_id", tokenClaims.session_id)
-      .maybeSingle();
-
-    const selectedProfile =
-      linked.find((item) => item.id === active?.profile_id) || linked[0];
-
-    if (!active?.profile_id || active.profile_id !== selectedProfile.id) {
-      await request("/api/select-profile", currentSession.access_token, {
-        method: "POST",
-        body: JSON.stringify({ profile_id: selectedProfile.id }),
-      });
-    }
-
-    setProfile(selectedProfile);
-
+  if (!result.ok || !result.json?.id) {
+    throw new HttpError(401, "Invalid login session");
+  }
   const claims = decodeJwt(token);
 
   if (!UUID.test(claims.session_id || "")) {
