@@ -373,6 +373,69 @@ const [attendanceLoading, setAttendanceLoading] = useState(false);
   const batchName = (id) => records.batches.find((b) => b.id === id)?.name || "—";
   const examById = (id) => records.exams.find((x) => x.id === id);
 
+  const loadAttendance = async () => {
+    if (!attendanceBatch) {
+      setError("Choose a batch first.");
+      return;
+    }
+
+    setAttendanceLoading(true);
+    setError("");
+
+    try {
+      const rows = await request(
+        `/api/attendance?batch_id=${encodeURIComponent(attendanceBatch)}&date=${encodeURIComponent(attendanceDate)}`,
+        token
+      );
+
+      setAttendanceRows(asArray(rows).map((student) => ({
+        ...student,
+        attendance: student.attendance || ""
+      })));
+    } catch (e) {
+      setError(e.message || "Could not load attendance.");
+      setAttendanceRows([]);
+    } finally {
+      setAttendanceLoading(false);
+    }
+  };
+
+  const saveAttendance = async () => {
+    if (!attendanceBatch || !attendanceRows.length) {
+      setError("Choose a batch and load students first.");
+      return;
+    }
+
+    if (attendanceRows.some((student) => !student.attendance)) {
+      setError("Select a status for every student.");
+      return;
+    }
+
+    setAttendanceLoading(true);
+    setError("");
+
+    try {
+      await request("/api/attendance", token, {
+        method: "POST",
+        body: JSON.stringify({
+          batch_id: attendanceBatch,
+          attendance_date: attendanceDate,
+          records: attendanceRows.map((student) => ({
+            student_id: student.id,
+            status: student.attendance
+          }))
+        })
+      });
+
+      setNotice("Attendance saved successfully.");
+      await loadAttendance();
+    } catch (e) {
+      setError(e.message || "Could not save attendance.");
+    } finally {
+      setAttendanceLoading(false);
+    }
+  };
+  
   const startNew = (type, item = null) => {
     setEdit(item);
     setForm(item ? { ...item } : type === "fees"
