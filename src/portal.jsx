@@ -252,7 +252,7 @@ function AIChat() {
     <div style={{ position: "fixed", right: 18, bottom: 18, zIndex: 999 }}>
       {open && (
         <div style={{
-          width: "min(350px, calc(100vw - 36px)",
+          width: "min(350px, calc(100vw - 36px))",
           height: 430,
           background: "white",
           border: "1px solid #ddd",
