@@ -486,7 +486,7 @@ export function Dash() {
   const navigation = [
     ["overview", "Overview"], ["events", "Events & announcements"],
     ...(teacher ? [] : [["fees", "Fees & payments"]]),
-    ["exams", "Exams & results"],
+    ["exams", "Exams & results"],["attendance", "Attendance"],
     ...(admin ? [["students", "Students"], ["parents", "Parents"], ["expenses", "Expenses"]] : []),
   ];
 
