@@ -215,7 +215,84 @@ function Panel({ title, action, children }) {
 function Input({ label, ...props }) {
   return <label className="field">{label}<input {...props}/></label>;
 }
+function AIChat() {
+  const { session, profile } = useAuth();
+  const [open, setOpen] = useState(false);
+  const [message, setMessage] = useState("");
+  const [messages, setMessages] = useState([]);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
 
+  const sendMessage = async () => {
+    const question = message.trim();
+    if (!question || busy) return;
+
+    setMessages(old => [...old, { role: "user", text: question }]);
+    setMessage("");
+    setBusy(true);
+    setError("");
+
+    try {
+      const result = await request("/api/ai/chat", session.access_token, {
+        method: "POST",
+        body: JSON.stringify({ message: question }),
+      });
+
+      setMessages(old => [...old, { role: "assistant", text: result.answer }]);
+    } catch (e) {
+      setError(e.message || "Something went wrong.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (!profile || !session?.access_token) return null;
+
+  return (
+    <div style={{ position: "fixed", right: 18, bottom: 18, zIndex: 999 }}>
+      {open && (
+        <div style={{
+          width: "min(350px, calc(100vw - 36px)",
+          height: 430,
+          background: "white",
+          border: "1px solid #ddd",
+          borderRadius: 14,
+          padding: 14,
+          marginBottom: 10,
+          display: "flex",
+          flexDirection: "column",
+          boxShadow: "0 5px 25px #0002"
+        }}>
+          <h3>AI Assistant</h3>
+          <div style={{ flex: 1, overflowY: "auto", marginBottom: 10 }}>
+            {messages.map((item, index) => (
+              <p key={index}>
+                <b>{item.role === "user" ? "You" : "AI"}:</b> {item.text}
+              </p>
+            ))}
+            {busy && <p>AI is thinking...</p>}
+            {error && <p style={{ color: "red" }}>{error}</p>}
+          </div>
+
+          <input
+            value={message}
+            onChange={e => setMessage(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && sendMessage()}
+            placeholder="Ask something..."
+            maxLength={2000}
+          />
+          <button className="btn" onClick={sendMessage} disabled={busy}>
+            {busy ? "Sending..." : "Send"}
+          </button>
+        </div>
+      )}
+
+      <button className="btn" onClick={() => setOpen(!open)}>
+        {open ? "Close AI" : "Ask AI"}
+      </button>
+    </div>
+  );
+}
 export function Dash() {
   const auth = useAuth();
   const { session, profile, profiles } = auth;
