@@ -276,7 +276,10 @@ async function createProfile(env, admin, body) {
         method: "DELETE",
         service: true
       });
-      throw new HttpError(500, "Could not create student record");
+      throw new HttpError(
+  500,
+  "Could not create student record: " + JSON.stringify(student.json)
+);
     }
   }
 
