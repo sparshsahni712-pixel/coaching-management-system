@@ -358,19 +358,20 @@ const [attendanceLoading, setAttendanceLoading] = useState(false);
       ? request(path, token).then(asArray).catch((e) => { problems.push(`${label}: ${e.message}`); return []; })
       : Promise.resolve([]);
     try {
-      const [fees, expenses, events, payments, exams, results, batches, parents, studentRows] = await Promise.all([
-        load("Fees", "/api/fees", role !== "teacher"),
-        load("Expenses", "/api/expenses", admin),
-        load("Events", "/api/events"),
-        load("Payments", "/api/payments", role !== "teacher"),
-        load("Exams", "/api/exams"),
-        load("Results", "/api/results"),
-        load("Batches", "/api/batches"),
-        load("Parents", "/api/parents", admin),
-        load("Students", "/api/students"),
-      ]);
-      setRecords({ fees, expenses, events, payments, exams, results, batches, parents });
-      setStudents(studentRows);
+      const [fees, expenses, events, payments, exams, results, batches, parents, studentRows, teachers] = await Promise.all([
+  load("Fees", "/api/fees", role !== "teacher"),
+  load("Expenses", "/api/expenses", admin),
+  load("Events", "/api/events"),
+  load("Payments", "/api/payments", role !== "teacher"),
+  load("Exams", "/api/exams"),
+  load("Results", "/api/results"),
+  load("Batches", "/api/batches"),
+  load("Parents", "/api/parents", admin),
+  load("Students", "/api/students"),
+  load("Teachers", "/api/teachers", admin),
+]);
+setRecords({ fees, expenses, events, payments, exams, results, batches, parents, teachers });
+setStudents(studentRows);
       if (problems.length) setError(`Some sections could not load — ${problems.join(" | ")}`);
     } catch (e) { setError(e.message || "Unable to load records."); }
     finally { setBusy(false); }
