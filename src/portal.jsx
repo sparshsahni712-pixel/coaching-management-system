@@ -60,12 +60,28 @@ export function AuthProvider({ children }) {
       setProfile(null);
       return;
     }
+        const tokenClaims = JSON.parse(
+      atob(currentSession.access_token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))
+    );
+
     const { data: active } = await supabase
       .from("active_profile_sessions")
       .select("profile_id")
       .eq("auth_user_id", currentSession.user.id)
+      .eq("session_id", tokenClaims.session_id)
       .maybeSingle();
-    setProfile(linked.find((item) => item.id === active?.profile_id) || linked[0]);
+
+    const selectedProfile =
+      linked.find((item) => item.id === active?.profile_id) || linked[0];
+
+    if (!active?.profile_id || active.profile_id !== selectedProfile.id) {
+      await request("/api/select-profile", currentSession.access_token, {
+        method: "POST",
+        body: JSON.stringify({ profile_id: selectedProfile.id }),
+      });
+    }
+
+    setProfile(selectedProfile);
   }, []);
 
   useEffect(() => {
