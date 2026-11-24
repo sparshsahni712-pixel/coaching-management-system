@@ -1379,7 +1379,19 @@ if (path === "/api/ai/chat" && method === "POST") {
 }
     /* READS ALLOWED FOR EVERY ROLE (scoped to what that profile may see) */
 
-    if (method === "GET") {
+    if (method === "GET") { 
+      if (path === "/api/attendance") {
+  if (!canManage) {
+    throw new HttpError(403, "Only admins and teachers can view attendance");
+  }
+
+  return ok(await getAttendance(
+    env,
+    activeProfile,
+    url.searchParams.get("batch_id"),
+    url.searchParams.get("date")
+  ));
+      }
       if (path === "/api/events") return ok(await listModule(env, activeProfile, "events"));
       if (path === "/api/batches") return ok(await listBatches(env, activeProfile));
       if (path === "/api/students") return ok(await listStudents(env, activeProfile));
