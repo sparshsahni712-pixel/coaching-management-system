@@ -119,7 +119,7 @@ async function getActiveProfile(env, auth) {
 
   return result.json[0];
 }
-{
+async function requireAdmin(env, auth) {
   const profile = await getActiveProfile(env, auth);
 
   if (profile.role !== "admin" || !profile.institute_id) {
