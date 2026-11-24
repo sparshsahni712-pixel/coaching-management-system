@@ -610,6 +610,7 @@ export function Dash() {
         <div className="row" style={{ justifyContent: "flex-end", marginTop: 14 }}><button className="btn alt" onClick={closeDialog}>Cancel</button><button className="btn" disabled={busy} onClick={save}>{busy ? "Saving…" : "Save"}</button></div>
       </div>
     </div>}
+        <AIChat />
   </div>;
 }
 
