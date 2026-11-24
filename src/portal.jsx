@@ -620,6 +620,112 @@ const [attendanceLoading, setAttendanceLoading] = useState(false);
       </Panel>
     </>}
 
+    {section === "attendance" && canManage && <Panel
+      title={teacher ? "My batch attendance" : "Attendance management"}
+    >
+      <p className="muted">
+        {teacher
+          ? "You can mark attendance only for your assigned batches."
+          : "Select an institute batch to mark attendance."}
+      </p>
+
+      <div className="row" style={{ flexWrap: "wrap", alignItems: "end", gap: 12 }}>
+        <label className="field" style={{ minWidth: 220, flex: 1 }}>
+          Select batch
+          <select
+            value={attendanceBatch}
+            onChange={(e) => {
+              setAttendanceBatch(e.target.value);
+              setAttendanceRows([]);
+            }}
+          >
+            <option value="">Choose batch</option>
+            {records.batches.map((batch) => (
+              <option key={batch.id} value={batch.id}>{batch.name}</option>
+            ))}
+          </select>
+        </label>
+
+        <label className="field" style={{ minWidth: 180 }}>
+          Attendance date
+          <input
+            type="date"
+            value={attendanceDate}
+            onChange={(e) => {
+              setAttendanceDate(e.target.value);
+              setAttendanceRows([]);
+            }}
+          />
+        </label>
+
+        <button
+          className="btn"
+          onClick={loadAttendance}
+          disabled={attendanceLoading || !attendanceBatch}
+        >
+          {attendanceLoading ? "Loading..." : "Load students"}
+        </button>
+      </div>
+
+      {attendanceRows.length > 0 && <>
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Student</th>
+                <th>Admission no.</th>
+                <th>Attendance status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {attendanceRows.map((student) => (
+                <tr key={student.id}>
+                  <td>{student.profiles?.full_name || student.admission_number || "Student"}</td>
+                  <td>{student.admission_number || "—"}</td>
+                  <td>
+                    <select
+                      value={student.attendance}
+                      onChange={(e) =>
+                        setAttendanceRows((rows) =>
+                          rows.map((row) =>
+                            row.id === student.id
+                              ? { ...row, attendance: e.target.value }
+                              : row
+                          )
+                        )
+                      }
+                    >
+                      <option value="">Select status</option>
+                      <option value="present">Present</option>
+                      <option value="absent">Absent</option>
+                      <option value="late">Late</option>
+                      <option value="leave">Leave</option>
+                    </select>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="row" style={{ justifyContent: "flex-end", marginTop: 14 }}>
+          <button
+            className="btn"
+            onClick={saveAttendance}
+            disabled={attendanceLoading}
+          >
+            {attendanceLoading ? "Saving..." : "Save attendance"}
+          </button>
+        </div>
+      </>}
+
+      {!attendanceLoading && attendanceBatch && attendanceRows.length === 0 && (
+        <p className="muted">
+          No students loaded. Select a date and click Load students.
+        </p>
+      )}
+    </Panel>}
+    
     {section === "students" && admin && <Panel title="Student records" action={<div className="row" style={{ flexWrap: "wrap" }}><button className="btn alt" onClick={addBatch}>Add batch</button><button className="btn" onClick={()=>startNew("students")}>Add student</button></div>}>
       <div className="table-wrap"><table><thead><tr><th>Name</th><th>Admission number</th><th>Batch</th><th>Actions</th></tr></thead><tbody>
         {students.map((s)=><tr key={s.id}><td>{s.profiles?.full_name || "Student"}</td><td>{s.admission_number || "—"}</td><td>{batchName(s.batch_id)}</td><td><button className="btn alt" onClick={()=>remove("users", s.profile_id, "Delete this student and their login? This cannot be undone.")}>Delete</button></td></tr>)}
