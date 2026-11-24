@@ -705,7 +705,7 @@ async function listBatches(env, p) {
   );
 }
 
-}
+
 
 async function createBatch(env, admin, body) {
   const name = String(body.name || "").trim();
