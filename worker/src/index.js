@@ -79,11 +79,22 @@ async function authenticate(env, token) {
   };
 }
 
+
 async function getActiveProfile(env, auth) {
-  const profileId = auth.claims.active_profile_id;
+  const active = await sb(
+    env,
+    `/rest/v1/active_profile_sessions?session_id=eq.${auth.sessionId}&auth_user_id=eq.${auth.userId}&select=profile_id`,
+    { service: true }
+  );
+
+  if (!active.ok || !active.json?.length) {
+    throw new HttpError(403, "Select a profile first");
+  }
+
+  const profileId = active.json[0].profile_id;
 
   if (!UUID.test(profileId || "")) {
-    throw new HttpError(403, "Select a profile first");
+    throw new HttpError(403, "Invalid active profile");
   }
 
   const mapping = await sb(
@@ -108,8 +119,7 @@ async function getActiveProfile(env, auth) {
 
   return result.json[0];
 }
-
-async function requireAdmin(env, auth) {
+{
   const profile = await getActiveProfile(env, auth);
 
   if (profile.role !== "admin" || !profile.institute_id) {
