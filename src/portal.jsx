@@ -322,7 +322,13 @@ export function Dash() {
   const teacher = role === "teacher";
   const canManage = admin || teacher;
   const [section, setSection] = useState("overview");
-  const [records, setRecords] = useState({ fees: [], expenses: [], events: [], payments: [], exams: [], results: [], batches: [], parents: [] });
+  const [records, setRecords] = useState({
+  fees: [], expenses: [], events: [], payments: [],
+  exams: [], results: [], batches: [], parents: [], teachers: []
+});
+const [selectedTeacher, setSelectedTeacher] = useState("");
+const [selectedTeacherBatch, setSelectedTeacherBatch] = useState("");
+const [teacherSaving, setTeacherSaving] = useState(false);
   const [students, setStudents] = useState([]);
   const [attendanceDate, setAttendanceDate] = useState(
   new Date().toISOString().slice(0, 10)
