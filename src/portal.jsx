@@ -478,6 +478,8 @@ useEffect(() => {
           : type === "students"
             ? { full_name: "", email: "", batch_id: "", admission_number: "" }
             : type === "parents"
+            : type === "teachers"
+  ? { full_name: "", email: "" }
               ? { full_name: "", email: "" }
               : type === "link"
                 ? { parent_profile_id: item?.id || "", student_id: "" }
