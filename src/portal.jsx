@@ -391,7 +391,7 @@ const refresh = useCallback(async () => {
 
 useEffect(() => {
   refresh();
-
+}, [refresh]);
 
   const totalFees = records.fees.reduce((sum, row) => sum + Number(row.amount || 0), 0);
   const totalPaid = records.payments.reduce((sum, row) => sum + Number(row.amount || 0), 0);
