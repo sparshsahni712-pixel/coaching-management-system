@@ -346,6 +346,7 @@ const [error, setError] = useState("");
 const [notice, setNotice] = useState("");
 const [dialog, setDialog] = useState("");
 const [edit, setEdit] = useState(null);
+const [teacherBatchSelection, setTeacherBatchSelection] = useState({});
 const [form, setForm] = useState({});
 const token = session?.access_token;
 
