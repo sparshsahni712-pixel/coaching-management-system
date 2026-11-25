@@ -768,6 +768,21 @@ useEffect(() => {
       {!students.length && <p className="muted">No students yet. Add a batch first, then add students.</p>}
     </Panel>}
 
+    {section === "teachers" && admin && <Panel title="Teachers">
+      <div className="table-wrap"><table>
+        <thead><tr><th>Name</th><th>Assigned batches</th></tr></thead>
+        <tbody>
+          {records.teachers.map((t) => (
+            <tr key={t.id}>
+              <td>{t.full_name || "Teacher"}</td>
+              <td>{(t.batches || []).map((b) => b.name).join(", ") || "Not assigned"}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table></div>
+      {!records.teachers.length && <p className="muted">No teachers found.</p>}
+    </Panel>}
+    
     {section === "parents" && admin && <Panel title="Parents" action={<button className="btn" onClick={()=>startNew("parents")}>Add parent</button>}>
       <div className="table-wrap"><table><thead><tr><th>Name</th><th>Children</th><th>Actions</th></tr></thead><tbody>
         {records.parents.map((pr)=><tr key={pr.id}><td>{pr.full_name}</td><td>{pr.student_ids.length ? pr.student_ids.map((sid)=><span key={sid} style={{ display: "inline-block", marginRight: 8 }}>{studentName(sid)} <button className="btn alt" style={{ padding: "2px 8px" }} onClick={()=>unlink(pr.id, sid)}>✕</button></span>) : "—"}</td><td><button className="btn alt" onClick={()=>startNew("link",pr)}>Link student</button> <button className="btn alt" onClick={()=>remove("users", pr.id, "Delete this parent and their login? This cannot be undone.")}>Delete</button></td></tr>)}
