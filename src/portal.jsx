@@ -768,7 +768,7 @@ useEffect(() => {
       {!students.length && <p className="muted">No students yet. Add a batch first, then add students.</p>}
     </Panel>}
 
-    {section === "teachers" && admin && <Panel title="Teachers">
+    {section === "teachers" && admin && <Panel title="Teachers" action={<button className="btn" onClick={() => startNew("teachers")}>Add teacher</button>}>
       <div className="table-wrap"><table>
         <thead><tr><th>Name</th><th>Assigned batches</th></tr></thead>
         <tbody>
