@@ -819,15 +819,39 @@ const unassignBatchFromTeacher = async (teacherId, batchId) => {
 
     {section === "teachers" && admin && <Panel title="Teachers" action={<button className="btn" onClick={() => startNew("teachers")}>Add teacher</button>}>
       <div className="table-wrap"><table>
-        <thead><tr><th>Name</th><th>Assigned batches</th></tr></thead>
-        <tbody>
-          {records.teachers.map((t) => (
-            <tr key={t.id}>
-              <td>{t.full_name || "Teacher"}</td>
-              <td>{(t.batches || []).map((b) => b.name).join(", ") || "Not assigned"}</td>
-            </tr>
+        <thead><tr><th>Name</th><th>Assigned batches</th><th>Assign batch</th></tr></thead>
+<tbody>
+  {records.teachers.map((t) => (
+    <tr key={t.id}>
+      <td>{t.full_name || "Teacher"}</td>
+      <td>
+        {(t.batches || []).map((b) => (
+          <span key={b.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, marginRight: 8 }}>
+            {b.name}
+            <button className="btn alt" disabled={busy} onClick={() => unassignBatchFromTeacher(t.id, b.id)}>Remove</button>
+          </span>
+        ))}
+        {!t.batches?.length && "Not assigned"}
+      </td>
+      <td>
+        <select
+          value={teacherBatchSelection[t.id] || ""}
+          onChange={(e) => setTeacherBatchSelection({...teacherBatchSelection, [t.id]: e.target.value})}
+        >
+          <option value="">Choose batch</option>
+          {records.batches.filter((b) => !(t.batch_ids || []).includes(b.id)).map((b) => (
+            <option key={b.id} value={b.id}>{b.name}</option>
           ))}
-        </tbody>
+        </select>
+        <button
+          className="btn"
+          disabled={busy || !teacherBatchSelection[t.id]}
+          onClick={() => assignBatchToTeacher(t.id, teacherBatchSelection[t.id])}
+        >Assign</button>
+      </td>
+    </tr>
+  ))}
+</tbody>
       </table></div>
       {!records.teachers.length && <p className="muted">No teachers found.</p>}
     </Panel>}
