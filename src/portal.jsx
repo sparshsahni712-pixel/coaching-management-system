@@ -1011,7 +1011,7 @@ const unassignBatchFromTeacher = async (teacherId, batchId) => {
           <Input label="Venue" value={form.venue || ""} onChange={(e)=>setForm({...form,venue:e.target.value})}/>
           <label className="field">Poster image (max 5 MB)<input type="file" accept="image/*" onChange={(e)=>uploadPoster(e.target.files?.[0])}/></label>
           {form.poster_url && <img src={form.poster_url} alt="Event poster preview" style={{ maxWidth: 190, maxHeight: 190, objectFit: "contain" }}/>}
-        </>}
+      
                   <label className="field">
             Event attachments (PDF, DOC, DOCX, JPG, PNG, WebP — max 10 MB)
             <input
@@ -1031,7 +1031,7 @@ const unassignBatchFromTeacher = async (teacherId, batchId) => {
                 {file.name}
               </a>
             </p>
-          ))}
+          ))}        </>}
         {dialog === "exams" && <>
           <label className="field">Batch<select value={form.batch_id || ""} onChange={(e)=>setForm({...form,batch_id:e.target.value})}><option value="">Choose batch</option>{records.batches.map((b)=><option key={b.id} value={b.id}>{b.name}</option>)}</select></label>
           <Input label="Exam title" value={form.title || ""} onChange={(e)=>setForm({...form,title:e.target.value})}/>
