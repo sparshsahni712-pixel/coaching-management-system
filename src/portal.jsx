@@ -470,22 +470,22 @@ useEffect(() => {
   const startNew = (type, item = null) => {
     setEdit(item);
     setForm(item ? { ...item } : type === "fees"
-      ? { student_id: "", amount: "", due_date: "" }
-      : type === "expenses"
-        ? { title: "", category: "", amount: "", expense_date: new Date().toISOString().slice(0,10), description: "" }
-        : type === "exams"
-          ? { batch_id: "", title: "", subject: "", exam_date: "", total_marks: "" }
-          : type === "students"
-            ? { full_name: "", email: "", batch_id: "", admission_number: "" }
-            : type === "parents"
-            : type === "teachers"
-  ? { full_name: "", email: "" }
-              ? { full_name: "", email: "" }
-              : type === "link"
-                ? { parent_profile_id: item?.id || "", student_id: "" }
-                : type === "results"
-                  ? { marks: Object.fromEntries(records.results.filter((r) => r.exam_id === item?.id).map((r) => [r.student_id, String(r.marks_obtained)])) }
-                  : { title: "", description: "", event_date: "", event_time: "", venue: "", poster_url: "" });
+  ? { student_id: "", amount: "", due_date: "" }
+  : type === "expenses"
+    ? { title: "", category: "", amount: "", expense_date: new Date().toISOString().slice(0,10), description: "" }
+    : type === "exams"
+      ? { batch_id: "", title: "", subject: "", exam_date: "", total_marks: "" }
+      : type === "students"
+        ? { full_name: "", email: "", batch_id: "", admission_number: "" }
+        : type === "teachers"
+          ? { full_name: "", email: "" }
+          : type === "parents"
+            ? { full_name: "", email: "" }
+            : type === "link"
+              ? { parent_profile_id: item?.id || "", student_id: "" }
+              : type === "results"
+                ? { marks: Object.fromEntries(records.results.filter((r) => r.exam_id === item?.id).map((r) => [r.student_id, String(r.marks_obtained)])) }
+                : { title: "", description: "", event_date: "", event_time: "", venue: "", poster_url: "" });
     setDialog(type);
   };
 
