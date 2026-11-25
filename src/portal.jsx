@@ -587,8 +587,12 @@ useEffect(() => {
     ["overview", "Overview"], ["events", "Events & announcements"],
     ...(teacher ? [] : [["fees", "Fees & payments"]]),
     ["exams", "Exams & results"],["attendance", "Attendance"],
-    ...(admin ? [["students", "Students"], ["parents", "Parents"], ["expenses", "Expenses"]] : []),
-  ];
+...(admin ? [
+  ["students", "Students"],
+  ["teachers", "Teachers"],
+  ["parents", "Parents"],
+  ["expenses", "Expenses"]
+] : []),
 
   const dialogTitle = { fees: "fee", expenses: "expense", events: "event", exams: "exam", students: "student", parents: "parent", link: "child to parent", results: "results" }[dialog];
   const examStudents = dialog === "results" && edit ? students.filter((s) => s.batch_id === edit.batch_id) : [];
