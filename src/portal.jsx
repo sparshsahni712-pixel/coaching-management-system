@@ -621,7 +621,7 @@ const unassignBatchFromTeacher = async (teacherId, batchId) => {
     setBusy(true); setError("");
     try {
       const ext = file.name.split(".").pop() || "jpg";
-      const path = `event-posters/${profile.institute_id}/${Date.now()}.${ext}`;
+   const path = `${profile.institute_id}/event-posters/${Date.now()}.${ext}`;;
       const { error: uploadError } = await supabase.storage.from("lms-files").upload(path, file, { contentType: file.type });
       if (uploadError) throw uploadError;
       const { data, error: urlError } = await supabase.storage.from("lms-files").createSignedUrl(path, 60 * 60 * 24 * 30);
