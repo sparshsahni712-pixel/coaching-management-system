@@ -1002,6 +1002,18 @@ const unassignBatchFromTeacher = async (teacherId, batchId) => {
           <Input label="Amount" type="number" min="0.01" value={form.amount || ""} onChange={(e)=>setForm({...form,amount:e.target.value})}/>
           <Input label="Expense date" type="date" value={form.expense_date || ""} onChange={(e)=>setForm({...form,expense_date:e.target.value})}/>
           <label className="field">Description<textarea value={form.description || ""} onChange={(e)=>setForm({...form,description:e.target.value})}/></label>
+                  <label className="field">
+            Receipt attachment (PDF, DOC, DOCX, JPG, PNG, WebP — max 10 MB)
+            <input
+              type="file"
+              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp"
+              disabled={busy}
+              onChange={(e) => {
+                uploadExpenseReceipt(e.target.files?.[0]);
+                e.target.value = "";
+              }}
+            />
+          </label>
         </>}
         {dialog === "events" && <>
           <Input label="Title" value={form.title || ""} onChange={(e)=>setForm({...form,title:e.target.value})}/>
