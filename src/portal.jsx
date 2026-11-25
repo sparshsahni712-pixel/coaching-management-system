@@ -750,7 +750,6 @@ const unassignBatchFromTeacher = async (teacherId, batchId) => {
       setBusy(false);
     }
   };
-  const navigation = [
       const uploadExpenseReceipt = async (file) => {
     if (!file) return;
 
@@ -823,6 +822,7 @@ const unassignBatchFromTeacher = async (teacherId, batchId) => {
       setBusy(false);
     }
   };
+    const navigation = [
     ["overview", "Overview"], ["events", "Events & announcements"],
     ...(teacher ? [] : [["fees", "Fees & payments"]]),
     ["exams", "Exams & results"],["attendance", "Attendance"],
