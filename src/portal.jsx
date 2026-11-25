@@ -613,23 +613,66 @@ const unassignBatchFromTeacher = async (teacherId, batchId) => {
     finally { setBusy(false); }
   };
 
-  const uploadPoster = async (file) => {
+   const uploadPoster = async (file) => {
     if (!file) return;
-    if (!file.type.startsWith("image/") || file.size > 5 * 1024 * 1024) {
-      setError("Choose an image smaller than 5 MB."); return;
+
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+    if (!allowedTypes.includes(file.type) || file.size > 10 * 1024 * 1024) {
+      setError("Choose a JPG, PNG or WebP image smaller than 10 MB.");
+      return;
     }
-    setBusy(true); setError("");
+
+    setBusy(true);
+    setError("");
+
+    let uploadedPath = "";
+
     try {
-      const ext = file.name.split(".").pop() || "jpg";
-   const path = `${profile.institute_id}/event-posters/${Date.now()}.${ext}`;
-      const { error: uploadError } = await supabase.storage.from("lms-files").upload(path, file, { contentType: file.type });
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const path = `${profile.institute_id}/event-posters/${Date.now()}-${safeName}`;
+      uploadedPath = path;
+
+      const { error: uploadError } = await supabase.storage
+        .from("lms-files")
+        .upload(path, file, { contentType: file.type });
+
       if (uploadError) throw uploadError;
-      const { data, error: urlError } = await supabase.storage.from("lms-files").createSignedUrl(path, 60 * 60 * 24 * 30);
+
+      const { data: urlData, error: urlError } = await supabase.storage
+        .from("lms-files")
+        .createSignedUrl(path, 60 * 60 * 24 * 30);
+
       if (urlError) throw urlError;
-      setForm((old) => ({ ...old, poster_url: data.signedUrl }));
-      setNotice("Poster uploaded. Save the event to publish it.");
-    } catch (e) { setError(e.message); }
-    finally { setBusy(false); }
+
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!userData.user) throw new Error("Please sign in again.");
+
+      const { error: metadataError } = await supabase
+        .from("institute_files")
+        .insert({
+          institute_id: profile.institute_id,
+          uploaded_by: userData.user.id,
+          file_name: file.name,
+          file_path: path,
+          file_type: file.type,
+          file_size: file.size,
+          category: "event",
+          related_id: null,
+        });
+
+      if (metadataError) throw metadataError;
+
+      setForm((old) => ({ ...old, poster_url: urlData.signedUrl }));
+      setNotice("Poster uploaded and saved to file management. Save the event to publish it.");
+    } catch (e) {
+      if (uploadedPath) {
+        await supabase.storage.from("lms-files").remove([uploadedPath]);
+      }
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
   };
 
   const navigation = [
