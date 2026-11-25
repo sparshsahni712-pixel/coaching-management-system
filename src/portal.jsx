@@ -840,6 +840,11 @@ useEffect(() => {
           <label className="field">Batch<select value={form.batch_id || ""} onChange={(e)=>setForm({...form,batch_id:e.target.value})}><option value="">No batch yet</option>{records.batches.map((b)=><option key={b.id} value={b.id}>{b.name}</option>)}</select></label>
           <Input label="Admission number (optional)" value={form.admission_number || ""} onChange={(e)=>setForm({...form,admission_number:e.target.value})}/>
         </>}
+        {dialog === "teachers" && <>
+  <Input label="Full name" value={form.full_name || ""} onChange={(e)=>setForm({...form,full_name:e.target.value})}/>
+  <Input label="Email (login invitation is sent here)" type="email" value={form.email || ""} onChange={(e)=>setForm({...form,email:e.target.value})}/>
+  <p className="muted">Teacher ko login invitation email bheja jayega.</p>
+</>}
         {dialog === "parents" && <>
           <Input label="Full name" value={form.full_name || ""} onChange={(e)=>setForm({...form,full_name:e.target.value})}/>
           <Input label="Email (login invitation is sent here)" type="email" value={form.email || ""} onChange={(e)=>setForm({...form,email:e.target.value})}/>
