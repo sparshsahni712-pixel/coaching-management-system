@@ -674,7 +674,82 @@ const unassignBatchFromTeacher = async (teacherId, batchId) => {
       setBusy(false);
     }
   };
+  const uploadEventAttachment = async (file) => {
+    if (!file) return;
 
+    const allowedTypes = [
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+    ];
+
+    if (!allowedTypes.includes(file.type) || file.size > 10 * 1024 * 1024) {
+      setError("Choose a PDF, DOC, DOCX or image smaller than 10 MB.");
+      return;
+    }
+
+    setBusy(true);
+    setError("");
+
+    let uploadedPath = "";
+
+    try {
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const path = `${profile.institute_id}/events/${Date.now()}-${safeName}`;
+      uploadedPath = path;
+
+      const { error: uploadError } = await supabase.storage
+        .from("lms-files")
+        .upload(path, file, { contentType: file.type });
+
+      if (uploadError) throw uploadError;
+
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!userData.user) throw new Error("Please sign in again.");
+
+      const { error: metadataError } = await supabase
+        .from("institute_files")
+        .insert({
+          institute_id: profile.institute_id,
+          uploaded_by: userData.user.id,
+          file_name: file.name,
+          file_path: path,
+          file_type: file.type,
+          file_size: file.size,
+          category: "event",
+          related_id: null,
+        });
+
+      if (metadataError) throw metadataError;
+
+      const { data: urlData, error: urlError } = await supabase.storage
+        .from("lms-files")
+        .createSignedUrl(path, 60 * 60 * 24 * 30);
+
+      if (urlError) throw urlError;
+
+      setForm((old) => ({
+        ...old,
+        event_attachments: [
+          ...(old.event_attachments || []),
+          { name: file.name, url: urlData.signedUrl },
+        ],
+      }));
+
+      setNotice("Event attachment uploaded successfully.");
+    } catch (e) {
+      if (uploadedPath) {
+        await supabase.storage.from("lms-files").remove([uploadedPath]);
+      }
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
   const navigation = [
     ["overview", "Overview"], ["events", "Events & announcements"],
     ...(teacher ? [] : [["fees", "Fees & payments"]]),
