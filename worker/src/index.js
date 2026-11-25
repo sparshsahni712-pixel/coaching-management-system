@@ -1552,6 +1552,13 @@ if (path === "/api/attendance" && method === "POST") {
     if (path === "/api/teachers" && method === "GET") {
       return ok(await listTeachers(env, admin));
 }
+    if (path === "/api/teacher-assignments" && method === "POST") {
+  return ok(await assignTeacherBatch(env, admin, body), 201);
+}
+
+if (path === "/api/teacher-assignments" && method === "DELETE") {
+  return ok(await removeTeacherBatch(env, admin, url.searchParams));
+}
     if (path === "/api/batches" && method === "POST") {
       return ok(await createBatch(env, admin, body), 201);
     }
