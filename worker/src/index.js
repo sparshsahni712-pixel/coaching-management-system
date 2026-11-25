@@ -1549,7 +1549,9 @@ if (path === "/api/attendance" && method === "POST") {
     /* ADMIN-ONLY MANAGEMENT */
 
     const admin = await requireAdmin(env, auth);
-
+    if (path === "/api/teachers" && method === "GET") {
+      return ok(await listTeachers(env, admin));
+}
     if (path === "/api/batches" && method === "POST") {
       return ok(await createBatch(env, admin, body), 201);
     }
