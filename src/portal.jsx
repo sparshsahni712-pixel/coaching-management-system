@@ -334,12 +334,64 @@ export function Dash() {
     teachers: [],
   });
   const [students, setStudents] = useState([]);
-setStudents(studentRows);
-      if (problems.length) setError(`Some sections could not load — ${problems.join(" | ")}`);
-    } catch (e) { setError(e.message || "Unable to load records."); }
-    finally { setBusy(false); }
-  }, [token, admin, role]);
 
+const [attendanceDate, setAttendanceDate] = useState(
+  new Date().toISOString().slice(0, 10)
+);
+const [attendanceBatch, setAttendanceBatch] = useState("");
+const [attendanceRows, setAttendanceRows] = useState([]);
+const [attendanceLoading, setAttendanceLoading] = useState(false);
+const [busy, setBusy] = useState(false);
+const [error, setError] = useState("");
+const [notice, setNotice] = useState("");
+const [dialog, setDialog] = useState("");
+const [edit, setEdit] = useState(null);
+const [form, setForm] = useState({});
+const token = session?.access_token;
+
+const refresh = useCallback(async () => {
+  if (!token) return;
+  setBusy(true);
+  setError("");
+  const problems = [];
+
+  const load = (label, path, enabled = true) => enabled
+    ? request(path, token).then(asArray).catch((e) => {
+        problems.push(`${label}: ${e.message}`);
+        return [];
+      })
+    : Promise.resolve([]);
+
+  try {
+    const [fees, expenses, events, payments, exams, results, batches, parents, studentRows, teachers] = await Promise.all([
+      load("Fees", "/api/fees", role !== "teacher"),
+      load("Expenses", "/api/expenses", admin),
+      load("Events", "/api/events"),
+      load("Payments", "/api/payments", role !== "teacher"),
+      load("Exams", "/api/exams"),
+      load("Results", "/api/results"),
+      load("Batches", "/api/batches"),
+      load("Parents", "/api/parents", admin),
+      load("Students", "/api/students"),
+      load("Teachers", "/api/teachers", admin),
+    ]);
+
+    setRecords({ fees, expenses, events, payments, exams, results, batches, parents, teachers });
+    setStudents(studentRows);
+
+    if (problems.length) {
+      setError(`Some sections could not load — ${problems.join(" | ")}`);
+    }
+  } catch (e) {
+    setError(e.message || "Unable to load records.");
+  } finally {
+    setBusy(false);
+  }
+}, [token, admin, role]);
+
+useEffect(() => {
+  refresh();
+}, [refresh]);
   useEffect(() => { refresh(); }, [refresh]);
 
   const totalFees = records.fees.reduce((sum, row) => sum + Number(row.amount || 0), 0);
