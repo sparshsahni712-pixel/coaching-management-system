@@ -494,8 +494,12 @@ useEffect(() => {
   const save = async () => {
     setBusy(true); setError(""); setNotice("");
     try {
-      if (dialog === "students" || dialog === "parents") {
-        const body = { role: dialog === "students" ? "student" : "parent", full_name: form.full_name, email: form.email };
+       if (dialog === "students" || dialog === "parents" || dialog === "teachers") {
+  const body = {
+    role: dialog === "students" ? "student" : dialog === "teachers" ? "teacher" : "parent",
+    full_name: form.full_name,
+    email: form.email
+  };
         if (dialog === "students") { body.batch_id = form.batch_id || null; body.admission_number = form.admission_number || ""; }
         await request("/api/users", token, { method: "POST", body: JSON.stringify(body) });
         closeDialog();
