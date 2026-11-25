@@ -523,6 +523,48 @@ useEffect(() => {
     } catch (e) { setError(e.message); }
     finally { setBusy(false); }
   };
+  const assignBatchToTeacher = async (teacherId, batchId) => {
+  if (!batchId) {
+    setError("Choose a batch first.");
+    return;
+  }
+  setBusy(true);
+  setError("");
+  try {
+    await request("/api/teacher-assignments", token, {
+      method: "POST",
+      body: JSON.stringify({
+        teacher_profile_id: teacherId,
+        batch_id: batchId
+      })
+    });
+    setNotice("Batch assigned to teacher.");
+    await refresh();
+  } catch (e) {
+    setError(e.message);
+  } finally {
+    setBusy(false);
+  }
+};
+
+const unassignBatchFromTeacher = async (teacherId, batchId) => {
+  if (!window.confirm("Remove this batch from the teacher?")) return;
+  setBusy(true);
+  setError("");
+  try {
+    await request(
+      `/api/teacher-assignments?teacher_profile_id=${encodeURIComponent(teacherId)}&batch_id=${encodeURIComponent(batchId)}`,
+      token,
+      { method: "DELETE" }
+    );
+    setNotice("Batch assignment removed.");
+    await refresh();
+  } catch (e) {
+    setError(e.message);
+  } finally {
+    setBusy(false);
+  }
+};
 
   const remove = async (kind, id, message = "Delete this record?") => {
     if (!window.confirm(message)) return;
