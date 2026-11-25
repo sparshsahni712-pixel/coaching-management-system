@@ -503,7 +503,7 @@ useEffect(() => {
         if (dialog === "students") { body.batch_id = form.batch_id || null; body.admission_number = form.admission_number || ""; }
         await request("/api/users", token, { method: "POST", body: JSON.stringify(body) });
         closeDialog();
-        setNotice(`${dialog === "students" ? "Student" : "Parent"} added. An invitation email was sent to ${body.email} (if the account is new).`);
+        setNotice(`${dialog === "students" ? "Student" : dialog === "teachers" ? "Teacher" : "Parent"} added. Invitation email sent to ${body.email} (if the account is new).`);
       } else if (dialog === "link") {
         await request("/api/parent-links", token, { method: "POST", body: JSON.stringify({ parent_profile_id: form.parent_profile_id, student_id: form.student_id }) });
         closeDialog(); setNotice("Student linked to parent.");
